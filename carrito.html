@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrito — PAKAL</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- PROMO BAR -->
+  <div class="promo-bar" id="promoBar">
+    <p>Envío gratuito en pedidos superiores a $2,500 MXN &nbsp;·&nbsp; Tu carrito tiene envío gratis</p>
+    <button class="promo-bar__close" onclick="document.getElementById('promoBar').style.display='none'" aria-label="Cerrar">✕</button>
+  </div>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="container">
+      <div class="header__top">
+        <nav class="header__catalog-nav" aria-label="Catálogos">
+          <a href="#" class="active">Hombre</a>
+          <a href="#">Mujer</a>
+          <a href="#">Infantil</a>
+        </nav>
+        <a href="index.html" class="header__logo">
+          PAKAL
+          <span class="header__logo-sub">La Distinción del Tiempo</span>
+        </a>
+        <div class="header__actions">
+          <a href="auth.html">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            Ingresar
+          </a>
+          <a href="#">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            Wishlist
+          </a>
+          <a href="carrito.html">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            Carrito <span class="cart-count">3</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    <nav class="main-nav" aria-label="Navegación principal">
+      <div class="container">
+        <div class="main-nav__inner">
+          <a href="index.html">Inicio</a>
+          <a href="#">Novedades</a>
+          <a href="productos.html">Ropa</a>
+          <a href="#">Zapatos</a>
+          <a href="#">Accesorios</a>
+          <a href="#" class="nav-rebajas">Rebajas</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <div class="cart-page container">
+
+      <!-- Progress steps -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:56px;padding-top:48px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--black);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:600;color:var(--white);">1</div>
+          <span style="font-size:0.68rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;">Carrito</span>
+        </div>
+        <div style="width:80px;height:1px;background:var(--border);margin:0 16px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:600;color:var(--gray-light);">2</div>
+          <span style="font-size:0.68rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray-light);">Datos</span>
+        </div>
+        <div style="width:80px;height:1px;background:var(--border);margin:0 16px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:600;color:var(--gray-light);">3</div>
+          <span style="font-size:0.68rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray-light);">Pago</span>
+        </div>
+      </div>
+
+      <div class="cart-page__inner">
+
+        <!-- ── Cart Items ──────────────────────────────────── -->
+        <div>
+          <div class="cart-header">
+            <h1 class="cart-header__title">Mi Carrito</h1>
+            <span class="cart-header__count">3 productos</span>
+          </div>
+
+          <!-- Item 1 -->
+          <article class="cart-item" aria-label="Blazer Estructurado Chichen">
+            <div class="cart-item__img">
+              <div class="cart-item__img-placeholder ci-1" style="width:100%;height:100%;"></div>
+            </div>
+            <div class="cart-item__info">
+              <p class="cart-item__brand">PAKAL Heritage</p>
+              <h2 class="cart-item__name">Blazer Estructurado Chichen</h2>
+              <div class="cart-item__attrs">
+                <span class="cart-item__attr">Talla: <span>M</span></span>
+                <span class="cart-item__attr">Color: <span>Negro Obsidiana</span></span>
+              </div>
+              <div class="cart-item__qty" aria-label="Cantidad">
+                <button class="qty-btn" aria-label="Disminuir cantidad">−</button>
+                <input type="number" class="qty-input" value="1" min="1" max="10" aria-label="Cantidad">
+                <button class="qty-btn" aria-label="Aumentar cantidad">+</button>
+              </div>
+            </div>
+            <div class="cart-item__price-col">
+              <span class="cart-item__price">$6,800 MXN</span>
+              <button class="cart-item__remove" aria-label="Eliminar Blazer Estructurado Chichen del carrito">Eliminar</button>
+            </div>
+          </article>
+
+          <!-- Item 2 -->
+          <article class="cart-item" aria-label="Pantalón Sastre Uxmal">
+            <div class="cart-item__img">
+              <div class="cart-item__img-placeholder ci-2" style="width:100%;height:100%;"></div>
+            </div>
+            <div class="cart-item__info">
+              <p class="cart-item__brand">PAKAL Noir</p>
+              <h2 class="cart-item__name">Pantalón Sastre Uxmal</h2>
+              <div class="cart-item__attrs">
+                <span class="cart-item__attr">Talla: <span>32</span></span>
+                <span class="cart-item__attr">Color: <span>Negro</span></span>
+              </div>
+              <div class="cart-item__qty" aria-label="Cantidad">
+                <button class="qty-btn" aria-label="Disminuir cantidad">−</button>
+                <input type="number" class="qty-input" value="1" min="1" max="10" aria-label="Cantidad">
+                <button class="qty-btn" aria-label="Aumentar cantidad">+</button>
+              </div>
+            </div>
+            <div class="cart-item__price-col">
+              <span class="cart-item__price">$3,200 MXN</span>
+              <button class="cart-item__remove" aria-label="Eliminar Pantalón Sastre Uxmal del carrito">Eliminar</button>
+            </div>
+          </article>
+
+          <!-- Item 3 -->
+          <article class="cart-item" aria-label="Camisa de Lino Palenque">
+            <div class="cart-item__img">
+              <div class="cart-item__img-placeholder ci-3" style="width:100%;height:100%;"></div>
+            </div>
+            <div class="cart-item__info">
+              <p class="cart-item__brand">PAKAL Origin</p>
+              <h2 class="cart-item__name">Camisa de Lino Palenque</h2>
+              <div class="cart-item__attrs">
+                <span class="cart-item__attr">Talla: <span>M</span></span>
+                <span class="cart-item__attr">Color: <span>Blanco Cenote</span></span>
+              </div>
+              <div class="cart-item__qty" aria-label="Cantidad">
+                <button class="qty-btn" aria-label="Disminuir cantidad">−</button>
+                <input type="number" class="qty-input" value="2" min="1" max="10" aria-label="Cantidad">
+                <button class="qty-btn" aria-label="Aumentar cantidad">+</button>
+              </div>
+            </div>
+            <div class="cart-item__price-col">
+              <span class="cart-item__price">$5,400 MXN</span>
+              <span style="font-size:0.68rem;color:var(--gray-light);">$2,700 × 2</span>
+              <button class="cart-item__remove" aria-label="Eliminar Camisa de Lino Palenque del carrito">Eliminar</button>
+            </div>
+          </article>
+
+          <!-- Continue shopping -->
+          <div style="padding-top:24px;">
+            <a href="productos.html" style="display:inline-flex;align-items:center;gap:8px;font-size:0.68rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--gray-mid);transition:color 0.28s ease;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Continuar comprando
+            </a>
+          </div>
+        </div>
+
+        <!-- ── Order Summary ───────────────────────────────── -->
+        <aside class="cart-summary" aria-label="Resumen del pedido">
+          <h2 class="cart-summary__title">Resumen del pedido</h2>
+
+          <div class="summary-row">
+            <span class="summary-row__label">Subtotal (3 productos)</span>
+            <span class="summary-row__value">$15,400 MXN</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-row__label">Envío</span>
+            <span class="summary-row__value" style="color:#2E7D32;font-size:0.78rem;letter-spacing:0.06em;">Gratis</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-row__label">Descuento aplicado</span>
+            <span class="summary-row__value" style="color:#C44A4A;">−$0 MXN</span>
+          </div>
+
+          <!-- Promo code -->
+          <div class="cart-summary__promo" aria-label="Código de descuento">
+            <input type="text" placeholder="Código de descuento" aria-label="Código de descuento">
+            <button>Aplicar</button>
+          </div>
+
+          <div class="summary-row summary-row--total">
+            <span class="summary-row__label">Total</span>
+            <span class="summary-row__value">$15,400 MXN</span>
+          </div>
+
+          <p style="font-size:0.65rem;color:var(--gray-light);margin:8px 0 20px;letter-spacing:0.04em;line-height:1.6;">
+            Incluye IVA. El precio final puede variar según método de pago.
+          </p>
+
+          <!-- Checkout CTA -->
+          <button class="cart-summary__checkout" onclick="alert('Proceder al pago — integrar con pasarela de pago')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Finalizar compra
+          </button>
+
+          <!-- Secure badge -->
+          <div class="cart-summary__secure">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Pago 100% seguro · SSL
+          </div>
+
+          <!-- Payment methods -->
+          <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
+            <p style="font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--gray-light);margin-bottom:12px;">Métodos de pago aceptados</p>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <div style="border:1px solid var(--border);padding:5px 10px;font-size:0.65rem;color:var(--gray-mid);">Visa</div>
+              <div style="border:1px solid var(--border);padding:5px 10px;font-size:0.65rem;color:var(--gray-mid);">Mastercard</div>
+              <div style="border:1px solid var(--border);padding:5px 10px;font-size:0.65rem;color:var(--gray-mid);">Amex</div>
+              <div style="border:1px solid var(--border);padding:5px 10px;font-size:0.65rem;color:var(--gray-mid);">OXXO Pay</div>
+              <div style="border:1px solid var(--border);padding:5px 10px;font-size:0.65rem;color:var(--gray-mid);">Transferencia</div>
+            </div>
+          </div>
+
+        </aside>
+
+      </div><!-- /.cart-page__inner -->
+
+      <!-- Recommended -->
+      <div style="margin-top:80px;padding-top:60px;border-top:1px solid var(--border);">
+        <div class="section-header">
+          <div class="section-header__left">
+            <span class="section-label">También te puede interesar</span>
+            <h2 class="section-title">Completa <em>tu look</em></h2>
+          </div>
+          <a href="productos.html" class="section-header__right">Ver más</a>
+        </div>
+        <div class="product-grid">
+          <article class="product-card">
+            <div class="product-card__media">
+              <div class="product-card__img-placeholder img-placeholder--5">Imagen Editorial</div>
+              <button class="product-card__wishlist">♡</button>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__brand">PAKAL Heritage</p>
+              <h3 class="product-card__name">Cinturón Piel Tikal</h3>
+              <div class="product-card__price-row"><span class="product-card__price">$1,800 MXN</span></div>
+              <a href="detalle.html" class="product-card__cta">Ver producto</a>
+            </div>
+          </article>
+          <article class="product-card">
+            <div class="product-card__media">
+              <div class="product-card__img-placeholder img-placeholder--4">Imagen Editorial</div>
+              <button class="product-card__wishlist">♡</button>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__brand">PAKAL Noir</p>
+              <h3 class="product-card__name">Zapato Oxford Copán</h3>
+              <div class="product-card__price-row"><span class="product-card__price">$8,900 MXN</span></div>
+              <a href="detalle.html" class="product-card__cta">Ver producto</a>
+            </div>
+          </article>
+          <article class="product-card">
+            <div class="product-card__media">
+              <div class="product-card__img-placeholder img-placeholder--6">Imagen Editorial</div>
+              <button class="product-card__wishlist">♡</button>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__brand">PAKAL Origin</p>
+              <h3 class="product-card__name">Pañuelo Seda Ixchel</h3>
+              <div class="product-card__price-row"><span class="product-card__price">$680 MXN</span></div>
+              <a href="detalle.html" class="product-card__cta">Ver producto</a>
+            </div>
+          </article>
+          <article class="product-card">
+            <div class="product-card__media">
+              <div class="product-card__img-placeholder img-placeholder--2">Imagen Editorial</div>
+              <button class="product-card__wishlist">♡</button>
+            </div>
+            <div class="product-card__body">
+              <p class="product-card__brand">PAKAL Heritage</p>
+              <h3 class="product-card__name">Suéter Merino Xibalbá</h3>
+              <div class="product-card__price-row"><span class="product-card__price">$4,100 MXN</span></div>
+              <a href="detalle.html" class="product-card__cta">Ver producto</a>
+            </div>
+          </article>
+        </div>
+      </div>
+
+    </div><!-- /.cart-page -->
+  </main>
+
+  <!-- FOOTER (minimal) -->
+  <footer class="site-footer" style="margin-top:80px;">
+    <div class="container">
+      <div class="footer__bottom">
+        <p>© 2026 PAKAL. Todos los derechos reservados.</p>
+        <div class="footer__bottom-links">
+          <a href="#">Privacidad</a>
+          <a href="#">Términos</a>
+          <a href="#">Ayuda</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
