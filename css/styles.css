@@ -2945,3 +2945,223 @@ p  { line-height: 1.7; color: var(--gray-mid); }
   .contact-form__row { grid-template-columns: 1fr; }
   .talla-tables { grid-template-columns: 1fr; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   MÓDULO DE PAGO CON TARJETA
+   ════════════════════════════════════════════════════════════ */
+
+/* Tabs de método */
+.pay-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 20px;
+}
+.pay-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--gray-mid);
+  cursor: pointer;
+  transition: all var(--transition);
+  border-left: none;
+}
+.pay-tab:first-child { border-left: 1px solid var(--border); }
+.pay-tab--active {
+  background: var(--black);
+  color: var(--white);
+  border-color: var(--black);
+}
+
+/* Panel de cada método */
+.pay-panel { animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+.pay-panel__info {
+  display: flex;
+  gap: 14px;
+  padding: 20px;
+  background: var(--bg-section);
+  border: 1px solid var(--border);
+  align-items: flex-start;
+  color: var(--gray-mid);
+}
+.pay-panel__info strong { display: block; color: var(--dark); margin-bottom: 4px; font-size: 0.85rem; }
+.pay-panel__info p { font-size: 0.82rem; margin: 0; }
+.pay-panel__info svg { flex-shrink: 0; margin-top: 2px; color: var(--gold); }
+
+/* ── Vista previa de la tarjeta ── */
+.card-preview {
+  width: 100%;
+  max-width: 340px;
+  height: 200px;
+  perspective: 1000px;
+  margin: 0 auto 24px;
+  user-select: none;
+}
+.card-preview__inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-preview__inner.flipped { transform: rotateY(180deg); }
+
+.card-preview__front,
+.card-preview__back {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  padding: 20px 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+}
+.card-preview__front {
+  background: linear-gradient(135deg, #1C1C1C 0%, #3A3A3A 60%, #2a2014 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.card-preview__back {
+  background: linear-gradient(135deg, #2a2014 0%, #3A3A3A 100%);
+  transform: rotateY(180deg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* Frente */
+.card-preview__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.card-preview__brand-label {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.3em;
+  color: rgba(255,255,255,0.5);
+}
+.card-preview__chip { margin: 4px 0; }
+.card-preview__number {
+  font-family: 'Courier New', monospace;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  color: var(--white);
+  text-align: center;
+  margin: 0;
+}
+.card-preview__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.card-preview__label {
+  display: block;
+  font-size: 0.52rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 3px;
+}
+.card-preview__value {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--white);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+/* Reverso */
+.card-preview__magstripe {
+  height: 36px;
+  background: #111;
+  margin: 0 -24px;
+  border-radius: 0;
+}
+.card-preview__cvv-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.card-preview__signature {
+  flex: 1;
+  height: 32px;
+  background: repeating-linear-gradient(
+    180deg,
+    #e8e8e8 0, #e8e8e8 4px,
+    #f5f5f5 4px, #f5f5f5 8px
+  );
+  border-radius: 2px;
+}
+.card-preview__cvv-box {
+  background: var(--white);
+  border-radius: 2px;
+  padding: 4px 10px;
+  text-align: center;
+  min-width: 52px;
+}
+.card-preview__cvv-val {
+  display: block;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: var(--dark);
+  letter-spacing: 0.1em;
+}
+
+/* ── Campos del formulario de tarjeta ── */
+.card-fields { display: flex; flex-direction: column; gap: 14px; }
+.card-field-group { display: flex; flex-direction: column; gap: 6px; }
+.card-field-label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dark);
+}
+.card-input { font-family: 'Courier New', monospace; letter-spacing: 0.04em; }
+.card-input:focus { border-color: var(--gold); outline: none; }
+
+.card-input__status {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.card-field-error {
+  font-size: 0.7rem;
+  color: #C44A4A;
+  letter-spacing: 0.04em;
+  min-height: 14px;
+  display: block;
+}
+
+.card-accepted {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray-light);
+}
