@@ -289,7 +289,7 @@ $csrf = generarCSRF();
           <span class="field-error" id="err-login-pass" role="alert"></span>
         </div>
 
-        <a href="recuperar-password.php" class="auth-form__forgot">¿Olvidaste tu contraseña?</a>
+        <span class="auth-form__forgot" style="cursor:default;color:var(--gray-light);">¿Olvidaste tu contraseña? Contacta a soporte.</span>
 
         <button type="submit" class="auth-form__submit" id="btn-login">
           Ingresar

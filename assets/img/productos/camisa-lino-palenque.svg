@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 750">
+<defs><linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#C4BC9C"/><stop offset="100%" stop-color="#8C8468"/></linearGradient></defs>
+<rect width="600" height="750" fill="url(#g3)"/>
+<rect x="40" y="40" width="520" height="670" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
+<rect x="58" y="58" width="484" height="634" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
+<g transform="translate(300,300)">
+<polygon points="0,-90 65,0 0,90 -65,0" fill="none" stroke="rgba(255,255,255,0.30)" stroke-width="1.5"/>
+<polygon points="0,-55 40,0 0,55 -40,0" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
+<circle cx="0" cy="0" r="5" fill="rgba(255,255,255,0.35)"/>
+<line x1="0" y1="-55" x2="0" y2="55" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+<line x1="-55" y1="0" x2="55" y2="0" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+</g>
+<text x="300" y="116" font-family="Georgia,serif" font-size="11" letter-spacing="4" fill="rgba(255,255,255,0.55)" text-anchor="middle">Colección Chichen</text>
+<line x1="220" y1="130" x2="380" y2="130" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
+<text x="300" y="558" font-family="Georgia,serif" font-size="27" fill="rgba(255,255,255,0.92)" text-anchor="middle">Camisa de</text>
+<text x="300" y="592" font-family="Georgia,serif" font-size="27" fill="rgba(255,255,255,0.92)" text-anchor="middle">Lino Palenque</text>
+<line x1="200" y1="614" x2="400" y2="614" stroke="rgba(255,255,255,0.22)" stroke-width="0.8"/>
+<text x="300" y="642" font-family="Georgia,serif" font-size="11" letter-spacing="5" fill="rgba(255,255,255,0.50)" text-anchor="middle">PAKAL Origin</text>
+</svg>

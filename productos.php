@@ -1,7 +1,88 @@
 <?php
-$pageTitle = 'Ropa — PAKAL';
-$activeNav = 'ropa';
-$activeCat = 'hombre';
+// ── Catálogo de Productos ────────────────────────────────────
+require_once 'config/session.php';
+require_once 'config/database.php';
+
+$pdo = getPDO();
+
+// Parámetros de filtro
+$genero_filtro    = in_array($_GET['genero'] ?? '', ['hombre','mujer','infantil','unisex'])
+                    ? $_GET['genero'] : null;
+$categoria_filtro = (int)($_GET['categoria_id'] ?? 0) ?: null;
+$rebaja_filtro    = isset($_GET['rebaja']) && $_GET['rebaja'] === '1';
+$orden_filtro     = in_array($_GET['orden'] ?? '', ['precio_asc','precio_desc','nuevo'])
+                    ? $_GET['orden'] : 'nuevo';
+$busqueda         = trim($_GET['q'] ?? '');
+$tipo_filtro      = in_array($_GET['tipo'] ?? '', ['ropa','zapatos','accesorios'])
+                    ? $_GET['tipo'] : null;
+
+// Construir query con filtros
+$where  = ['p.estado = "activo"'];
+$params = [];
+
+if ($genero_filtro) {
+    $where[]  = 'c.genero = ?';
+    $params[] = $genero_filtro;
+}
+if ($categoria_filtro) {
+    $where[]  = 'p.categoria_id = ?';
+    $params[] = $categoria_filtro;
+}
+if ($tipo_filtro === 'zapatos') {
+    $where[] = "c.slug LIKE 'zapatos%'";
+} elseif ($tipo_filtro === 'accesorios') {
+    $where[] = "c.slug = 'accesorios'";
+} elseif ($tipo_filtro === 'ropa') {
+    $where[] = "c.slug NOT LIKE 'zapatos%' AND c.slug != 'accesorios'";
+}
+if ($rebaja_filtro) {
+    $where[] = 'p.precio_rebaja IS NOT NULL';
+}
+if ($busqueda !== '') {
+    $where[]  = '(p.nombre LIKE ? OR p.marca LIKE ? OR p.coleccion LIKE ?)';
+    $like     = '%' . $busqueda . '%';
+    $params   = array_merge($params, [$like, $like, $like]);
+}
+
+$order = match($orden_filtro) {
+    'precio_asc'  => 'COALESCE(p.precio_rebaja, p.precio) ASC',
+    'precio_desc' => 'COALESCE(p.precio_rebaja, p.precio) DESC',
+    default       => 'p.destacado DESC, p.created_at DESC',
+};
+
+$sql = 'SELECT p.id, p.nombre, p.marca, p.precio, p.precio_rebaja, p.badge, p.stock, p.estado,
+               c.nombre AS categoria_nombre
+        FROM productos p
+        JOIN categorias c ON p.categoria_id = c.id
+        WHERE ' . implode(' AND ', $where) . '
+        ORDER BY ' . $order;
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$productos = $stmt->fetchAll();
+
+$imgs_productos = imagenesPorIds($pdo, array_column($productos, 'id'));
+$csrf           = generarCSRF();
+$wishlist_ids   = estaLogueado()
+    ? wishlistUsuario($pdo, (int)$_SESSION['usuario_id'])
+    : [];
+
+// Categorías para sidebar
+$categorias_sidebar = $pdo->query(
+    'SELECT id, nombre, genero FROM categorias WHERE activo = 1 ORDER BY genero, nombre'
+)->fetchAll();
+
+$titulo = 'Todos los Productos';
+if ($tipo_filtro === 'zapatos')    $titulo = 'Zapatos';
+if ($tipo_filtro === 'accesorios') $titulo = 'Accesorios';
+if ($tipo_filtro === 'ropa')       $titulo = 'Ropa';
+if ($genero_filtro)                $titulo = 'Colección ' . ucfirst($genero_filtro);
+if ($rebaja_filtro)                $titulo = 'Productos en Rebaja';
+if ($busqueda !== '')              $titulo = 'Búsqueda: "' . htmlspecialchars($busqueda) . '"';
+
+$pageTitle = $titulo . ' — PAKAL';
+$activeNav = $rebaja_filtro ? 'rebajas' : ($tipo_filtro ?? 'ropa');
+$activeCat = $genero_filtro ?? 'hombre';
 require_once 'includes/header.php';
 ?>
 
@@ -10,12 +91,10 @@ require_once 'includes/header.php';
       <nav class="page-hero__breadcrumb" aria-label="Ruta de navegación">
         <a href="/proyecto/index.php">Inicio</a>
         <span>›</span>
-        <a href="/proyecto/index.php">Hombre</a>
-        <span>›</span>
-        <span style="color:var(--dark);">Ropa</span>
+        <span style="color:var(--dark);"><?= htmlspecialchars($titulo) ?></span>
       </nav>
-      <h1 class="page-hero__title">Ropa <em style="font-family:var(--font-display);font-style:italic;color:var(--gray-mid);">para Hombre</em></h1>
-      <p class="page-hero__count">248 productos encontrados</p>
+      <h1 class="page-hero__title"><?= htmlspecialchars($titulo) ?></h1>
+      <p class="page-hero__count"><?= count($productos) ?> producto<?= count($productos) !== 1 ? 's' : '' ?> encontrado<?= count($productos) !== 1 ? 's' : '' ?></p>
     </div>
 
     <!-- PRODUCTS LAYOUT -->
@@ -23,262 +102,170 @@ require_once 'includes/header.php';
       <div class="container">
         <div class="products-layout">
 
-          <!-- SIDEBAR FILTERS -->
+          <!-- Sidebar de filtros -->
           <aside class="filters" aria-label="Filtros de productos">
             <div class="filters__header">
               <span class="filters__title">Filtros</span>
-              <button class="filters__clear">Limpiar todo</button>
+              <a href="/proyecto/productos.php" class="filters__clear">Limpiar todo</a>
             </div>
 
+            <!-- Buscador rápido -->
+            <form method="GET" action="/proyecto/productos.php" style="margin-bottom:20px;">
+              <div style="position:relative;">
+                <input type="text" name="q" class="form-input"
+                       placeholder="Buscar producto..."
+                       value="<?= htmlspecialchars($busqueda) ?>"
+                       style="padding-right:40px;">
+                <button type="submit" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-mid);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                </button>
+              </div>
+            </form>
+
+            <!-- Género -->
+            <div class="filter-group">
+              <button class="filter-group__toggle open" aria-expanded="true">Género</button>
+              <div class="filter-options">
+                <a href="/proyecto/productos.php" style="display:block;padding:4px 0;font-size:0.82rem;color:<?= !$genero_filtro ? 'var(--dark)' : 'var(--gray-mid)' ?>;">
+                  Todos
+                </a>
+                <?php foreach (['hombre','mujer','infantil'] as $g): ?>
+                <a href="/proyecto/productos.php?genero=<?= $g ?>"
+                   style="display:block;padding:4px 0;font-size:0.82rem;color:<?= $genero_filtro === $g ? 'var(--dark)' : 'var(--gray-mid)' ?>;font-weight:<?= $genero_filtro === $g ? '600' : '400' ?>;">
+                  <?= ucfirst($g) ?>
+                </a>
+                <?php endforeach; ?>
+              </div>
+            </div>
+
+            <!-- Categorías -->
             <div class="filter-group">
               <button class="filter-group__toggle open" aria-expanded="true">Categoría</button>
               <div class="filter-options">
-                <label><input type="checkbox" checked> Blazers y Sacos</label>
-                <label><input type="checkbox"> Camisas</label>
-                <label><input type="checkbox"> Pantalones</label>
-                <label><input type="checkbox"> Abrigos</label>
-                <label><input type="checkbox"> Suéteres y Tejidos</label>
-                <label><input type="checkbox"> Camisetas</label>
-                <label><input type="checkbox"> Bermudas</label>
-                <label><input type="checkbox"> Ropa Interior</label>
+                <?php
+                $genero_actual = $genero_filtro ?? 'hombre';
+                $cats_filtradas = array_filter($categorias_sidebar,
+                    fn($c) => $c['genero'] === $genero_actual || $c['genero'] === 'unisex'
+                );
+                foreach ($cats_filtradas as $cat):
+                ?>
+                <a href="/proyecto/productos.php?categoria_id=<?= $cat['id'] ?><?= $genero_filtro ? '&genero='.$genero_filtro : '' ?>"
+                   style="display:block;padding:4px 0;font-size:0.82rem;color:<?= $categoria_filtro === $cat['id'] ? 'var(--dark)' : 'var(--gray-mid)' ?>;font-weight:<?= $categoria_filtro === $cat['id'] ? '600' : '400' ?>;">
+                  <?= htmlspecialchars($cat['nombre']) ?>
+                </a>
+                <?php endforeach; ?>
               </div>
             </div>
 
+            <!-- Rebajas -->
             <div class="filter-group">
-              <button class="filter-group__toggle open" aria-expanded="true">Precio</button>
-              <div class="price-range">
-                <div class="price-range__inputs">
-                  <div>
-                    <p class="price-range__label">Mínimo</p>
-                    <input type="number" class="form-input" value="0" placeholder="$0">
-                  </div>
-                  <div>
-                    <p class="price-range__label">Máximo</p>
-                    <input type="number" class="form-input" value="20000" placeholder="$20,000">
-                  </div>
-                </div>
-                <button class="btn btn--sm" style="width:100%;justify-content:center;">Aplicar</button>
-              </div>
-            </div>
-
-            <div class="filter-group">
-              <button class="filter-group__toggle open" aria-expanded="true">Talla</button>
-              <div class="size-grid">
-                <button class="size-btn">XS</button>
-                <button class="size-btn">S</button>
-                <button class="size-btn active">M</button>
-                <button class="size-btn">L</button>
-                <button class="size-btn">XL</button>
-                <button class="size-btn">XXL</button>
-                <button class="size-btn unavailable">XXXL</button>
-              </div>
-            </div>
-
-            <div class="filter-group">
-              <button class="filter-group__toggle open" aria-expanded="true">Color</button>
-              <div class="color-swatches">
-                <div class="color-swatch swatch-negro active" title="Negro"></div>
-                <div class="color-swatch swatch-blanco" title="Blanco"></div>
-                <div class="color-swatch swatch-gris" title="Gris"></div>
-                <div class="color-swatch swatch-azul" title="Azul marino"></div>
-                <div class="color-swatch swatch-cafe" title="Café"></div>
-                <div class="color-swatch swatch-beis" title="Beige"></div>
-                <div class="color-swatch swatch-verde" title="Verde oscuro"></div>
-                <div class="color-swatch swatch-rojo" title="Burdeos"></div>
-              </div>
-            </div>
-
-            <div class="filter-group">
-              <button class="filter-group__toggle" aria-expanded="false">Colección</button>
+              <button class="filter-group__toggle open" aria-expanded="true">Ofertas</button>
               <div class="filter-options">
-                <label><input type="checkbox"> Colección Tikal</label>
-                <label><input type="checkbox"> Colección Chichen</label>
-                <label><input type="checkbox"> Colección Uxmal</label>
-                <label><input type="checkbox"> PAKAL Heritage</label>
-                <label><input type="checkbox"> PAKAL Noir</label>
-                <label><input type="checkbox"> PAKAL Origin</label>
-              </div>
-            </div>
-
-            <div class="filter-group">
-              <button class="filter-group__toggle" aria-expanded="false">Tejido y Material</button>
-              <div class="filter-options">
-                <label><input type="checkbox"> Algodón</label>
-                <label><input type="checkbox"> Lino</label>
-                <label><input type="checkbox"> Lana</label>
-                <label><input type="checkbox"> Seda</label>
-                <label><input type="checkbox"> Mezcla premium</label>
+                <a href="/proyecto/productos.php?rebaja=1"
+                   style="display:block;padding:4px 0;font-size:0.82rem;color:<?= $rebaja_filtro ? 'var(--dark)' : 'var(--gray-mid)' ?>;font-weight:<?= $rebaja_filtro ? '600' : '400' ?>;">
+                  Solo en rebaja
+                </a>
               </div>
             </div>
 
           </aside>
 
-          <!-- PRODUCT AREA -->
+          <!-- Área de productos -->
           <div>
 
             <div class="products-toolbar">
               <div class="products-toolbar__sort">
                 <label for="sortSelect">Ordenar por</label>
-                <select id="sortSelect" class="products-toolbar__sort">
-                  <option>Relevancia</option>
-                  <option>Novedades</option>
-                  <option>Precio: menor a mayor</option>
-                  <option>Precio: mayor a menor</option>
-                  <option>Más vendidos</option>
+                <select id="sortSelect" class="products-toolbar__sort"
+                        onchange="window.location='/proyecto/productos.php?orden='+this.value+'<?= $genero_filtro ? '&genero='.$genero_filtro : '' ?><?= $categoria_filtro ? '&categoria_id='.$categoria_filtro : '' ?>'">
+                  <option value="nuevo"       <?= $orden_filtro === 'nuevo'       ? 'selected' : '' ?>>Novedades</option>
+                  <option value="precio_asc"  <?= $orden_filtro === 'precio_asc'  ? 'selected' : '' ?>>Precio: menor a mayor</option>
+                  <option value="precio_desc" <?= $orden_filtro === 'precio_desc' ? 'selected' : '' ?>>Precio: mayor a menor</option>
                 </select>
               </div>
-              <div class="products-toolbar__view" aria-label="Vista de productos">
-                <button class="view-btn active" title="Grid 3 columnas">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="4" height="4"/><rect x="5" y="0" width="4" height="4"/><rect x="10" y="0" width="4" height="4"/><rect x="0" y="5" width="4" height="4"/><rect x="5" y="5" width="4" height="4"/><rect x="10" y="5" width="4" height="4"/><rect x="0" y="10" width="4" height="4"/><rect x="5" y="10" width="4" height="4"/><rect x="10" y="10" width="4" height="4"/></svg>
-                </button>
-                <button class="view-btn" title="Grid 2 columnas">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="6" height="6"/><rect x="8" y="0" width="6" height="6"/><rect x="0" y="8" width="6" height="6"/><rect x="8" y="8" width="6" height="6"/></svg>
-                </button>
-              </div>
             </div>
+
+            <?php if (empty($productos)): ?>
+            <div style="padding:64px 0;text-align:center;">
+              <p style="font-size:0.95rem;color:var(--gray-mid);margin-bottom:16px;">
+                No se encontraron productos con los filtros seleccionados.
+              </p>
+              <a href="/proyecto/productos.php" class="btn">Ver todos los productos</a>
+            </div>
+            <?php else: ?>
 
             <div class="product-grid product-grid--3col" role="list">
-
+              <?php
+              foreach ($productos as $i => $prod):
+                $precio_mostrar = $prod['precio_rebaja'] ?? $prod['precio'];
+                $tiene_rebaja   = $prod['precio_rebaja'] !== null;
+                $agotado        = $prod['estado'] === 'agotado' || $prod['stock'] <= 0;
+                $img_p          = $imgs_productos[$prod['id']] ?? null;
+                $en_wish_p      = in_array($prod['id'], $wishlist_ids);
+              ?>
               <article class="product-card" role="listitem">
                 <div class="product-card__media">
-                  <div class="product-card__img-placeholder img-placeholder--1">Imagen Editorial</div>
-                  <span class="product-card__badge product-card__badge--nuevo">Nuevo</span>
-                  <button class="product-card__wishlist" aria-label="Wishlist">♡</button>
+                  <?php if ($img_p): ?>
+                    <img src="/proyecto/assets/img/productos/<?= htmlspecialchars($img_p) ?>"
+                         alt="<?= htmlspecialchars($prod['nombre']) ?>"
+                         style="width:100%;height:100%;object-fit:cover;display:block;">
+                  <?php else: ?>
+                    <div class="product-card__img-placeholder img-placeholder--<?= ($i % 6) + 1 ?>">Imagen Editorial</div>
+                  <?php endif; ?>
+                  <?php if ($prod['badge']): ?>
+                  <span class="product-card__badge product-card__badge--<?= htmlspecialchars($prod['badge']) ?>">
+                    <?php if ($prod['badge'] === 'rebaja' && $tiene_rebaja): ?>
+                      −<?= round((1 - $prod['precio_rebaja'] / $prod['precio']) * 100) ?>%
+                    <?php else: ?>
+                      <?= ucfirst($prod['badge']) ?>
+                    <?php endif; ?>
+                  </span>
+                  <?php endif; ?>
+                  <?php if ($agotado): ?>
+                  <span class="product-card__badge" style="background:#888;top:auto;bottom:12px;">Agotado</span>
+                  <?php endif; ?>
+                  <?php if (estaLogueado()): ?>
+                  <form method="POST" action="/proyecto/proceso/wishlist.php" class="wishlist-form">
+                    <input type="hidden" name="csrf_token"  value="<?= htmlspecialchars($csrf) ?>">
+                    <input type="hidden" name="producto_id" value="<?= $prod['id'] ?>">
+                    <input type="hidden" name="redirect"    value="<?= htmlspecialchars($_SERVER['REQUEST_URI']) ?>">
+                    <button type="submit" class="btn-wishlist <?= $en_wish_p ? 'btn-wishlist--active' : '' ?>"
+                            title="<?= $en_wish_p ? 'Quitar de favoritos' : 'Guardar en favoritos' ?>">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="<?= $en_wish_p ? 'currentColor' : 'none' ?>" stroke="currentColor" stroke-width="1.5">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                      </svg>
+                    </button>
+                  </form>
+                  <?php else: ?>
+                  <a href="/proyecto/auth.php" class="wishlist-form" title="Inicia sesión para guardar favoritos">
+                    <span class="btn-wishlist">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                      </svg>
+                    </span>
+                  </a>
+                  <?php endif; ?>
                 </div>
                 <div class="product-card__body">
-                  <p class="product-card__brand">PAKAL Heritage</p>
-                  <h3 class="product-card__name">Blazer Estructurado Chichen</h3>
-                  <div class="product-card__price-row"><span class="product-card__price">$6,800 MXN</span></div>
-                  <a href="/proyecto/detalle.php" class="product-card__cta">Ver producto</a>
-                </div>
-              </article>
-
-              <article class="product-card" role="listitem">
-                <div class="product-card__media">
-                  <div class="product-card__img-placeholder img-placeholder--2">Imagen Editorial</div>
-                  <button class="product-card__wishlist" aria-label="Wishlist">♡</button>
-                </div>
-                <div class="product-card__body">
-                  <p class="product-card__brand">PAKAL Noir</p>
-                  <h3 class="product-card__name">Pantalón Sastre Uxmal</h3>
-                  <div class="product-card__price-row"><span class="product-card__price">$3,200 MXN</span></div>
-                  <a href="/proyecto/detalle.php" class="product-card__cta">Ver producto</a>
-                </div>
-              </article>
-
-              <article class="product-card" role="listitem">
-                <div class="product-card__media">
-                  <div class="product-card__img-placeholder img-placeholder--3">Imagen Editorial</div>
-                  <span class="product-card__badge product-card__badge--rebaja">−30%</span>
-                  <button class="product-card__wishlist" aria-label="Wishlist">♡</button>
-                </div>
-                <div class="product-card__body">
-                  <p class="product-card__brand">PAKAL Origin</p>
-                  <h3 class="product-card__name">Camisa de Lino Palenque</h3>
+                  <p class="product-card__brand"><?= htmlspecialchars($prod['marca']) ?></p>
+                  <h3 class="product-card__name"><?= htmlspecialchars($prod['nombre']) ?></h3>
                   <div class="product-card__price-row">
-                    <span class="product-card__price product-card__price--sale">$1,890 MXN</span>
-                    <span class="product-card__price--old">$2,700 MXN</span>
+                    <?php if ($tiene_rebaja): ?>
+                      <span class="product-card__price product-card__price--sale">$<?= number_format($prod['precio_rebaja'], 0, '.', ',') ?> MXN</span>
+                      <span class="product-card__price--old">$<?= number_format($prod['precio'], 0, '.', ',') ?> MXN</span>
+                    <?php else: ?>
+                      <span class="product-card__price">$<?= number_format($prod['precio'], 0, '.', ',') ?> MXN</span>
+                    <?php endif; ?>
                   </div>
-                  <a href="/proyecto/detalle.php" class="product-card__cta">Ver producto</a>
+                  <a href="/proyecto/detalle.php?id=<?= $prod['id'] ?>" class="product-card__cta">Ver producto</a>
                 </div>
               </article>
-
-              <article class="product-card" role="listitem">
-                <div class="product-card__media">
-                  <div class="product-card__img-placeholder img-placeholder--4">Imagen Editorial</div>
-                  <span class="product-card__badge product-card__badge--nuevo">Nuevo</span>
-                  <button class="product-card__wishlist" aria-label="Wishlist">♡</button>
-                </div>
-                <div class="product-card__body">
-                  <p class="product-card__brand">PAKAL Heritage</p>
-                  <h3 class="product-card__name">Abrigo de Mezcla Cobá</h3>
-                  <div class="product-card__price-row"><span class="product-card__price">$12,400 MXN</span></div>
-                  <a href="/proyecto/detalle.php" class="product-card__cta">Ver producto</a>
-                </div>
-              </article>
-
-              <article class="product-card" role="listitem">
-                <div class="product-card__media">
-                  <div class="product-card__img-placeholder img-placeholder--5">Imagen Editorial</div>
-                  <button class="product-card__wishlist" aria-label="Wishlist">♡</button>
-                </div>
-                <div class="product-card__body">
-                  <p class="product-card__brand">PAKAL Noir</p>
-                  <h3 class="product-card__name">Polo Piqué Tulum</h3>
-                  <div class="product-card__price-row"><span class="product-card__price">$1,650 MXN</span></div>
-                  <a href="/proyecto/detalle.php" class="product-card__cta">Ver producto</a>
-                </div>
-              </article>
-
-              <article class="product-card" role="listitem">
-                <div class="product-card__media">
-                  <div class="product-card__img-placeholder img-placeholder--6">Imagen Editorial</div>
-                  <button class="product-card__wishlist" aria-label="Wishlist">♡</button>
-                </div>
-                <div class="product-card__body">
-                  <p class="product-card__brand">PAKAL Origin</p>
-                  <h3 class="product-card__name">Suéter Merino Xibalbá</h3>
-                  <div class="product-card__price-row"><span class="product-card__price">$4,100 MXN</span></div>
-                  <a href="/proyecto/detalle.php" class="product-card__cta">Ver producto</a>
-                </div>
-              </article>
-
-              <article class="product-card" role="listitem">
-                <div class="product-card__media">
-                  <div class="product-card__img-placeholder img-placeholder--1">Imagen Editorial</div>
-                  <span class="product-card__badge product-card__badge--nuevo">Nuevo</span>
-                  <button class="product-card__wishlist" aria-label="Wishlist">♡</button>
-                </div>
-                <div class="product-card__body">
-                  <p class="product-card__brand">PAKAL Heritage</p>
-                  <h3 class="product-card__name">Traje de Lana Tikal I</h3>
-                  <div class="product-card__price-row"><span class="product-card__price">$18,900 MXN</span></div>
-                  <a href="/proyecto/detalle.php" class="product-card__cta">Ver producto</a>
-                </div>
-              </article>
-
-              <article class="product-card" role="listitem">
-                <div class="product-card__media">
-                  <div class="product-card__img-placeholder img-placeholder--3">Imagen Editorial</div>
-                  <button class="product-card__wishlist" aria-label="Wishlist">♡</button>
-                </div>
-                <div class="product-card__body">
-                  <p class="product-card__brand">PAKAL Noir</p>
-                  <h3 class="product-card__name">Chaqueta Denim Mayapán</h3>
-                  <div class="product-card__price-row"><span class="product-card__price">$5,200 MXN</span></div>
-                  <a href="/proyecto/detalle.php" class="product-card__cta">Ver producto</a>
-                </div>
-              </article>
-
-              <article class="product-card" role="listitem">
-                <div class="product-card__media">
-                  <div class="product-card__img-placeholder img-placeholder--5">Imagen Editorial</div>
-                  <span class="product-card__badge product-card__badge--rebaja">−15%</span>
-                  <button class="product-card__wishlist" aria-label="Wishlist">♡</button>
-                </div>
-                <div class="product-card__body">
-                  <p class="product-card__brand">PAKAL Origin</p>
-                  <h3 class="product-card__name">Camisa Oxford Kabah</h3>
-                  <div class="product-card__price-row">
-                    <span class="product-card__price product-card__price--sale">$1,615 MXN</span>
-                    <span class="product-card__price--old">$1,900 MXN</span>
-                  </div>
-                  <a href="/proyecto/detalle.php" class="product-card__cta">Ver producto</a>
-                </div>
-              </article>
-
+              <?php endforeach; ?>
             </div>
 
-            <nav class="pagination" aria-label="Paginación">
-              <button class="pagination__btn pagination__btn--nav" aria-label="Página anterior">‹</button>
-              <button class="pagination__btn active" aria-current="page">1</button>
-              <button class="pagination__btn">2</button>
-              <button class="pagination__btn">3</button>
-              <button class="pagination__btn">4</button>
-              <span style="padding:0 4px;font-size:0.8rem;color:var(--gray-light);">···</span>
-              <button class="pagination__btn">12</button>
-              <button class="pagination__btn pagination__btn--nav" aria-label="Página siguiente">›</button>
-            </nav>
+            <?php endif; ?>
 
           </div>
         </div>
