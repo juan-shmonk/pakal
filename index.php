@@ -345,7 +345,7 @@ require_once 'includes/header.php';
         <p class="maya-banner__text">
           Cada pieza PAKAL nace del respeto profundo por la civilización maya: su geometría sagrada, sus texturas naturales y su filosofía del tiempo eterno.
         </p>
-        <a href="#" class="btn btn--white">Nuestra Historia</a>
+        <a href="/proyecto/acerca.php#historia" class="btn btn--white">Nuestra Historia</a>
       </div>
     </section>
 

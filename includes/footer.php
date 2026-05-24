@@ -39,22 +39,22 @@
       <div>
         <h4 class="footer__col-title">Información</h4>
         <ul class="footer__col-links">
-          <li><a href="#">Quiénes somos</a></li>
-          <li><a href="#">Sostenibilidad</a></li>
-          <li><a href="#">Artesanos PAKAL</a></li>
-          <li><a href="#">Prensa</a></li>
-          <li><a href="#">Trabaja con nosotros</a></li>
+          <li><a href="/proyecto/acerca.php#historia">Quiénes somos</a></li>
+          <li><a href="/proyecto/acerca.php#sostenibilidad">Sostenibilidad</a></li>
+          <li><a href="/proyecto/acerca.php#artesanos">Artesanos PAKAL</a></li>
+          <li><a href="/proyecto/acerca.php#prensa">Prensa</a></li>
+          <li><a href="/proyecto/acerca.php#trabaja">Trabaja con nosotros</a></li>
         </ul>
       </div>
 
       <div>
         <h4 class="footer__col-title">Ayuda</h4>
         <ul class="footer__col-links">
-          <li><a href="#">Centro de ayuda</a></li>
-          <li><a href="#">Tallas y guías</a></li>
-          <li><a href="#">Envíos y entregas</a></li>
-          <li><a href="#">Devoluciones</a></li>
-          <li><a href="#">Contacto</a></li>
+          <li><a href="/proyecto/ayuda.php">Centro de ayuda</a></li>
+          <li><a href="/proyecto/ayuda.php#tallas">Tallas y guías</a></li>
+          <li><a href="/proyecto/ayuda.php#envios">Envíos y entregas</a></li>
+          <li><a href="/proyecto/ayuda.php#devoluciones">Devoluciones</a></li>
+          <li><a href="/proyecto/ayuda.php#contacto">Contacto</a></li>
         </ul>
       </div>
 
