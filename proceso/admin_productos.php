@@ -1,8 +1,24 @@
 <?php
-// ── Proceso: CRUD de Productos (Admin) ───────────────────────
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: proceso/admin_productos.php                       ║
+// ║  PROPÓSITO: Gestión completa de productos (solo admins)      ║
+// ║                                                              ║
+// ║  Implementa las cuatro operaciones CRUD sobre productos:     ║
+// ║  C = Create  (action=guardar)  — Crear un producto nuevo     ║
+// ║  R = Read    (en admin.php)    — Listado de productos        ║
+// ║  U = Update  (action=actualizar) — Editar un producto        ║
+// ║  D = Delete  (action=eliminar)  — Borrar un producto         ║
+// ║                                                              ║
+// ║  También maneja las imágenes de producto:                    ║
+// ║  - Si el admin sube una imagen → la guarda en assets/img/    ║
+// ║  - Si no sube imagen → genera automáticamente un SVG         ║
+// ║    con el nombre del producto sobre fondo con degradado      ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 require_once '../config/session.php';
 require_once '../config/database.php';
 
+// Solo administradores pueden gestionar productos.
 if (!estaLogueado() || !esAdmin()) {
     flash('error', 'Acceso denegado.');
     header('Location: ../index.php');
@@ -21,8 +37,18 @@ if (!validarCSRF($_POST['csrf_token'] ?? '')) {
 $action = $_POST['action'] ?? '';
 $pdo    = getPDO();
 
-// ── Helpers ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// FUNCIONES AUXILIARES
+// ═══════════════════════════════════════════════════════════════
 
+// ──────────────────────────────────────────────────────────────
+// FUNCIÓN: slugify()
+// ──────────────────────────────────────────────────────────────
+// Convierte un texto cualquiera en un "slug" para URLs amigables.
+// Un slug es texto en minúsculas sin acentos ni caracteres especiales,
+// con palabras separadas por guiones.
+// Ejemplo: "Camisa Lino Ámbar" → "camisa-lino-ambar"
+// ¿Para qué sirve? Para crear URLs limpias como /producto/camisa-lino-ambar
 function slugify(string $texto): string
 {
     $mapa = ['á'=>'a','à'=>'a','ä'=>'a','â'=>'a','é'=>'e','è'=>'e','ë'=>'e','ê'=>'e',
@@ -32,31 +58,65 @@ function slugify(string $texto): string
     return trim(preg_replace('/[\s-]+/', '-', preg_replace('/[^a-z0-9\s-]/u', '', $texto)), '-');
 }
 
+// ──────────────────────────────────────────────────────────────
+// FUNCIÓN: slugUnico()
+// ──────────────────────────────────────────────────────────────
+// Garantiza que el slug sea único en la base de datos.
+// Si ya existe "camisa-lino", prueba "camisa-lino-2", "camisa-lino-3", etc.
+// $excluir_id permite que un producto existente conserve su propio slug
+// sin que se detecte como "duplicado" de sí mismo al editarlo.
 function slugUnico(PDO $pdo, string $base, int $excluir_id = 0): string
 {
     $slug = $base; $sufijo = 1;
     while (true) {
+        // Comprobamos si el slug ya existe en la BD (excluyendo el producto actual si es edición).
         $chk = $pdo->prepare('SELECT id FROM productos WHERE slug = ? AND id != ?');
         $chk->execute([$slug, $excluir_id]);
-        if (!$chk->fetch()) break;
-        $slug = $base . '-' . $sufijo++;
+        if (!$chk->fetch()) break;  // Si no existe, salimos del bucle
+        $slug = $base . '-' . $sufijo++;  // Probamos con sufijo numérico
     }
     return $slug;
 }
 
+// ──────────────────────────────────────────────────────────────
+// FUNCIÓN: upsertImagen()
+// ──────────────────────────────────────────────────────────────
+// "Upsert" = Update + Insert (actualizar si existe, insertar si no).
+// Guarda la imagen principal (orden=0) de un producto.
+// Si ya había una imagen principal, la reemplaza. Si no había, la crea.
 function upsertImagen(PDO $pdo, int $producto_id, string $filename): void
 {
+    // Comprobamos si ya existe una imagen principal para este producto.
     $stmt = $pdo->prepare('SELECT id FROM producto_imagenes WHERE producto_id = ? AND orden = 0');
     $stmt->execute([$producto_id]);
     if ($stmt->fetch()) {
+        // Ya existe: actualizamos la ruta con la nueva imagen.
         $pdo->prepare('UPDATE producto_imagenes SET ruta = ? WHERE producto_id = ? AND orden = 0')
             ->execute([$filename, $producto_id]);
     } else {
+        // No existe: insertamos la nueva imagen con orden=0 (posición principal).
         $pdo->prepare('INSERT INTO producto_imagenes (producto_id, ruta, orden) VALUES (?, ?, 0)')
             ->execute([$producto_id, $filename]);
     }
 }
 
+// ──────────────────────────────────────────────────────────────
+// FUNCIÓN: generarSVG()
+// ──────────────────────────────────────────────────────────────
+// Genera automáticamente una imagen SVG de placeholder cuando
+// el administrador crea un producto sin subir una foto.
+//
+// Un SVG (Scalable Vector Graphics) es una imagen basada en código XML
+// que se puede escalar a cualquier tamaño sin perder calidad.
+//
+// ¿Cómo funciona?
+// - Elige una paleta de colores basada en el ID del producto (cíclica).
+// - Dibuja un fondo con degradado de color.
+// - Añade elementos decorativos mayas (rombos concéntricos).
+// - Escribe el nombre del producto y la marca.
+// - Devuelve el código XML del SVG como texto.
+//
+// El resultado es un archivo .svg guardado en assets/img/productos/
 function generarSVG(int $producto_id, string $nombre, string $marca, string $coleccion): string
 {
     $paletas = [
@@ -97,37 +157,69 @@ function generarSVG(int $producto_id, string $nombre, string $marca, string $col
     return $s;
 }
 
+// ──────────────────────────────────────────────────────────────
+// FUNCIÓN: procesarImagen()
+// ──────────────────────────────────────────────────────────────
+// Maneja la imagen de un producto después de crearlo o editarlo.
+//
+// Lógica:
+// 1. Si el admin subió un archivo de imagen → lo valida y guarda.
+// 2. Si NO subió imagen y es un producto NUEVO → genera SVG automático.
+// 3. Si NO subió imagen y es EDICIÓN → no hace nada (conserva la imagen actual).
+//
+// Seguridad en la carga de archivos:
+// - Verifica el tipo MIME real del archivo (no confía en la extensión del nombre).
+// - Limita el tamaño máximo a 5 MB.
+// - Solo acepta formatos de imagen conocidos (jpg, png, gif, webp, svg).
+//
+// $solo_si_hay_archivo=true en edición: si el admin no subió imagen nueva,
+// no tocamos la imagen existente del producto.
 function procesarImagen(PDO $pdo, int $producto_id, string $slug, string $nombre, string $marca, string $coleccion, bool $solo_si_hay_archivo = false): void
 {
+    // Directorio donde se guardan las imágenes de productos.
+    // dirname(__DIR__) sube un nivel desde "proceso/" hasta la raíz del proyecto.
     $dir = dirname(__DIR__) . '/assets/img/productos/';
 
+    // Verificamos si el admin subió un archivo de imagen.
     if (!empty($_FILES['imagen']['name']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+        // Tipos de imagen aceptados: formato MIME → extensión de archivo.
         $allowed = ['image/jpeg'=>'jpg','image/png'=>'png','image/gif'=>'gif',
                     'image/webp'=>'webp','image/svg+xml'=>'svg'];
+
+        // finfo detecta el tipo MIME REAL del archivo (no confía en el nombre del archivo).
+        // Un atacante podría renombrar un archivo .php a .jpg; finfo lo detectaría.
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mime  = finfo_file($finfo, $_FILES['imagen']['tmp_name']);
+        $mime  = finfo_file($finfo, $_FILES['imagen']['tmp_name']);  // tmp_name = archivo temporal
         finfo_close($finfo);
 
+        // Validamos: tipo permitido Y tamaño máximo de 5 MB (5 * 1024 * 1024 bytes).
         if (isset($allowed[$mime]) && $_FILES['imagen']['size'] <= 5 * 1024 * 1024) {
-            $filename = $slug . '.' . $allowed[$mime];
+            $filename = $slug . '.' . $allowed[$mime];  // Nombre final: slug-del-producto.jpg
+            // move_uploaded_file mueve el archivo del directorio temporal al destino final.
             if (move_uploaded_file($_FILES['imagen']['tmp_name'], $dir . $filename)) {
-                upsertImagen($pdo, $producto_id, $filename);
-                return;
+                upsertImagen($pdo, $producto_id, $filename);  // Guardamos la referencia en BD
+                return;  // Éxito: salimos de la función
             }
         }
     }
 
-    if ($solo_si_hay_archivo) return; // en edición no sobreescribir si no subieron archivo
+    // Si estamos editando y no se subió imagen nueva, conservamos la imagen actual.
+    if ($solo_si_hay_archivo) return;
 
-    // Nuevo producto sin imagen: auto-generar SVG
+    // Producto nuevo sin imagen: generamos un SVG de placeholder automáticamente.
     $filename = $slug . '.svg';
     file_put_contents($dir . $filename, generarSVG($producto_id, $nombre, $marca, $coleccion));
     upsertImagen($pdo, $producto_id, $filename);
 }
 
-// ── Guardar nuevo producto ───────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// ACCIÓN: "guardar" — Crear un nuevo producto
+// ═══════════════════════════════════════════════════════════════
 if ($action === 'guardar') {
 
+    // ── Recoger y limpiar los datos del formulario ────────────────
+    // str_replace(',', '.', ...) convierte "1,500.00" a "1500.00" por si el usuario usa coma decimal.
+    // ?: null convierte string vacío en NULL de la base de datos (más limpio que string vacío).
     $nombre      = trim($_POST['nombre']      ?? '');
     $marca       = trim($_POST['marca']       ?? 'PAKAL');
     $coleccion   = trim($_POST['coleccion']   ?? '') ?: null;
@@ -138,10 +230,13 @@ if ($action === 'guardar') {
     $stock       = (int)($_POST['stock']      ?? 0);
     $descripcion = trim($_POST['descripcion'] ?? '') ?: null;
     $material    = trim($_POST['material']    ?? '') ?: null;
+    // Validamos que el estado sea uno de los valores permitidos en la BD.
     $estado      = in_array($_POST['estado'] ?? '', ['activo','borrador','agotado'])
                    ? $_POST['estado'] : 'activo';
+    // El badge es la etiqueta que aparece sobre la imagen: "Nuevo", "Rebaja", "Exclusivo".
     $badge       = in_array($_POST['badge'] ?? '', ['nuevo','rebaja','exclusivo',''])
                    ? $_POST['badge'] : '';
+    // El campo "destacado" es un checkbox: '1' si marcado, '0' si no.
     $destacado   = ($_POST['destacado'] ?? '0') === '1' ? 1 : 0;
 
     if (empty($nombre) || $cat_id <= 0 || $precio <= 0) {
@@ -247,7 +342,9 @@ if ($action === 'actualizar') {
     exit;
 }
 
-// ── Eliminar producto ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// ACCIÓN: "eliminar" — Borrar un producto
+// ═══════════════════════════════════════════════════════════════
 if ($action === 'eliminar') {
 
     $producto_id = (int)($_POST['producto_id'] ?? 0);
@@ -257,6 +354,10 @@ if ($action === 'eliminar') {
         exit;
     }
 
+    // ── Verificar que no haya pedidos activos con este producto ───
+    // No podemos borrar un producto que está en un pedido pendiente, confirmado o enviado,
+    // porque el cliente lo está esperando. Solo se puede eliminar si todos sus pedidos
+    // están ya completados (entregado) o cancelados.
     $stmt = $pdo->prepare(
         'SELECT COUNT(*) FROM pedido_items pi
          JOIN pedidos p ON pi.pedido_id = p.id

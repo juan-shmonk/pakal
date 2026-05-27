@@ -1,13 +1,37 @@
 <?php
-// ── Carrito de Compras ───────────────────────────────────────
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: carrito.php                                       ║
+// ║  PROPÓSITO: Mostrar el carrito de compras del usuario        ║
+// ║                                                              ║
+// ║  Esta página muestra todos los productos que el usuario      ║
+// ║  tiene pendientes de comprar. Desde aquí puede:             ║
+// ║  - Ver los productos con su imagen, nombre y precio          ║
+// ║  - Cambiar la cantidad de cada producto                      ║
+// ║  - Eliminar productos del carrito                            ║
+// ║  - Ver el resumen con el total a pagar                       ║
+// ║  - Proceder a "Finalizar compra" (ir a checkout.php)         ║
+// ║                                                              ║
+// ║  Si el usuario NO está logueado, el carrito aparece vacío   ║
+// ║  y se invita a iniciar sesión.                               ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 require_once 'config/session.php';
 require_once 'config/database.php';
 
+// Iniciamos con el carrito vacío y total en cero.
 $items = [];
 $total = 0.00;
 
+// Solo consultamos la base de datos si hay un usuario logueado.
+// Un visitante anónimo no tiene carrito en la BD.
 if (estaLogueado()) {
     $pdo  = getPDO();
+
+    // Consultamos todos los ítems del carrito del usuario actual.
+    // JOIN une tres tablas:
+    //   carrito_items → los productos en el carrito (cantidad, precio)
+    //   carritos       → el contenedor del carrito (identifica al dueño)
+    //   productos      → los datos del producto (nombre, marca, stock disponible)
     $stmt = $pdo->prepare(
         'SELECT ci.id, ci.cantidad, ci.precio_unit,
                 p.id AS producto_id, p.nombre, p.marca, p.stock
@@ -15,14 +39,18 @@ if (estaLogueado()) {
          JOIN carritos c  ON ci.carrito_id  = c.id
          JOIN productos p ON ci.producto_id = p.id
          WHERE c.usuario_id = ?
-         ORDER BY ci.id ASC'
+         ORDER BY ci.id ASC'  // Mostramos en el orden en que se agregaron
     );
     $stmt->execute([$_SESSION['usuario_id']]);
     $items = $stmt->fetchAll();
 
+    // Calculamos el total sumando precio × cantidad de cada ítem.
     foreach ($items as $item) {
         $total += $item['cantidad'] * $item['precio_unit'];
     }
+
+    // Obtenemos las imágenes de todos los productos del carrito en una sola consulta.
+    // array_column extrae todos los producto_id en un array simple.
     $imgs_carrito = imagenesPorIds($pdo, array_column($items, 'producto_id'));
 }
 

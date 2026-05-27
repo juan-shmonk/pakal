@@ -1,33 +1,70 @@
 <?php
-// ── Catálogo de Productos ────────────────────────────────────
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: productos.php                                     ║
+// ║  PROPÓSITO: Catálogo completo de productos con filtros       ║
+// ║                                                              ║
+// ║  Esta página muestra todos los productos disponibles y       ║
+// ║  permite filtrarlos por múltiples criterios:                 ║
+// ║                                                              ║
+// ║  FILTROS (llegan como parámetros en la URL, ej: ?genero=mujer):
+// ║  - genero     → hombre / mujer / infantil                   ║
+// ║  - categoria_id → ID de una categoría específica            ║
+// ║  - tipo       → ropa / zapatos / accesorios                  ║
+// ║  - rebaja     → 1 (solo productos en oferta)                 ║
+// ║  - orden      → nuevo / precio_asc / precio_desc             ║
+// ║  - q          → texto libre de búsqueda                      ║
+// ║                                                              ║
+// ║  Los filtros se combinan dinámicamente en una consulta SQL.  ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 require_once 'config/session.php';
 require_once 'config/database.php';
 
 $pdo = getPDO();
 
-// Parámetros de filtro
+// ── Leer los filtros de la URL ────────────────────────────────────
+// $_GET contiene los parámetros de la URL (lo que viene después del "?").
+// Usamos "??" para dar un valor por defecto si el parámetro no viene.
+// in_array verifica que el valor sea uno de los permitidos (seguridad: evita valores arbitrarios).
+
+// Género seleccionado (null = todos los géneros).
 $genero_filtro    = in_array($_GET['genero'] ?? '', ['hombre','mujer','infantil','unisex'])
                     ? $_GET['genero'] : null;
+// Categoría específica (0 = todas las categorías).
 $categoria_filtro = (int)($_GET['categoria_id'] ?? 0) ?: null;
+// Si viene ?rebaja=1, solo mostramos productos con precio de rebaja.
 $rebaja_filtro    = isset($_GET['rebaja']) && $_GET['rebaja'] === '1';
+// Orden de presentación (por defecto: más nuevos primero).
 $orden_filtro     = in_array($_GET['orden'] ?? '', ['precio_asc','precio_desc','nuevo'])
                     ? $_GET['orden'] : 'nuevo';
+// Texto de búsqueda libre escrito por el usuario.
 $busqueda         = trim($_GET['q'] ?? '');
+// Tipo de producto (ropa, zapatos, accesorios) para los links del menú principal.
 $tipo_filtro      = in_array($_GET['tipo'] ?? '', ['ropa','zapatos','accesorios'])
                     ? $_GET['tipo'] : null;
 
-// Construir query con filtros
+// ── Construir la consulta SQL dinámicamente con los filtros ────────
+// Empezamos con la condición base: solo productos activos.
+// Vamos añadiendo condiciones según qué filtros el usuario activó.
+// Esto es más seguro que concatenar strings directamente en SQL.
 $where  = ['p.estado = "activo"'];
-$params = [];
+$params = [];  // Los valores "?" que se pasarán de forma segura a la consulta
 
+// Añadimos condición de género si el usuario filtró por él.
 if ($genero_filtro) {
     $where[]  = 'c.genero = ?';
     $params[] = $genero_filtro;
 }
+
+// Añadimos condición de categoría específica si se seleccionó una.
 if ($categoria_filtro) {
     $where[]  = 'p.categoria_id = ?';
     $params[] = $categoria_filtro;
 }
+
+// El tipo de producto se determina por el "slug" de la categoría en la BD.
+// Los zapatos tienen slugs que empiezan con "zapatos", los accesorios tienen slug exacto.
+// La ropa es todo lo demás (no zapatos ni accesorios).
 if ($tipo_filtro === 'zapatos') {
     $where[] = "c.slug LIKE 'zapatos%'";
 } elseif ($tipo_filtro === 'accesorios') {
@@ -35,19 +72,29 @@ if ($tipo_filtro === 'zapatos') {
 } elseif ($tipo_filtro === 'ropa') {
     $where[] = "c.slug NOT LIKE 'zapatos%' AND c.slug != 'accesorios'";
 }
+
+// Mostramos solo productos que tienen precio de rebaja (descuento).
 if ($rebaja_filtro) {
-    $where[] = 'p.precio_rebaja IS NOT NULL';
+    $where[] = 'p.precio_rebaja IS NOT NULL';  // IS NOT NULL = tiene precio de rebaja
 }
+
+// Búsqueda de texto: buscamos en nombre, marca y colección del producto.
+// LIKE '% texto %' encuentra el texto en cualquier parte del campo.
+// Añadimos el mismo $like tres veces porque se usa en tres columnas.
 if ($busqueda !== '') {
     $where[]  = '(p.nombre LIKE ? OR p.marca LIKE ? OR p.coleccion LIKE ?)';
     $like     = '%' . $busqueda . '%';
     $params   = array_merge($params, [$like, $like, $like]);
 }
 
+// ── Determinar el orden de presentación ───────────────────────────
+// match() es como un switch pero más moderno y conciso.
+// COALESCE(precio_rebaja, precio): si hay precio de rebaja lo usa, si no el normal.
+// Esto permite ordenar por el precio REAL que paga el cliente.
 $order = match($orden_filtro) {
-    'precio_asc'  => 'COALESCE(p.precio_rebaja, p.precio) ASC',
-    'precio_desc' => 'COALESCE(p.precio_rebaja, p.precio) DESC',
-    default       => 'p.destacado DESC, p.created_at DESC',
+    'precio_asc'  => 'COALESCE(p.precio_rebaja, p.precio) ASC',   // Más barato primero
+    'precio_desc' => 'COALESCE(p.precio_rebaja, p.precio) DESC',   // Más caro primero
+    default       => 'p.destacado DESC, p.created_at DESC',         // Destacados y más nuevos primero
 };
 
 $sql = 'SELECT p.id, p.nombre, p.marca, p.precio, p.precio_rebaja, p.badge, p.stock, p.estado,

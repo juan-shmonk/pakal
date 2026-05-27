@@ -1,10 +1,33 @@
 <?php
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: index.php                                         ║
+// ║  PROPÓSITO: Página de inicio (portada) de la tienda         ║
+// ║                                                              ║
+// ║  Esta es la primera página que ve el visitante. Contiene:   ║
+// ║  - Hero (imagen grande de portada) con llamada a la acción   ║
+// ║  - Category strip: tarjetas de Hombre, Mujer e Infantil      ║
+// ║  - Productos destacados del género seleccionado              ║
+// ║  - Banner "Herencia Maya" informativo de la marca            ║
+// ║  - Grid de beneficios (envío, devoluciones, pago seguro)     ║
+// ║  - Colección del género activo (4 productos adicionales)     ║
+// ║  - Formulario de newsletter (solo frontend, no envía emails) ║
+// ║                                                              ║
+// ║  El usuario puede cambiar el género con ?cat=mujer o ?cat=infantil
+// ║  Por defecto muestra la colección Hombre.                    ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 require_once 'config/session.php';
 require_once 'config/database.php';
 
-// Catálogo activo según parámetro ?cat=
+// ── Determinar el catálogo activo ────────────────────────────────
+// Leemos el parámetro ?cat= de la URL.
+// Si no viene o es inválido, mostramos "hombre" por defecto.
+// in_array valida que sea uno de los valores permitidos.
 $activeCat = in_array($_GET['cat'] ?? '', ['mujer', 'infantil']) ? $_GET['cat'] : 'hombre';
 
+// ── Configuración de textos según el género seleccionado ─────────
+// Cada género tiene sus propios títulos y etiquetas.
+// Esto evita duplicar el HTML para cada catálogo.
 $cat_config = [
     'hombre'   => [
         'label'    => 'Colección Hombre',
@@ -33,7 +56,9 @@ $cfg = $cat_config[$activeCat];
 try {
     $pdo_idx = getPDO();
 
-    // Conteos por género para category strip
+    // ── Conteo de productos por género (para el category strip) ───
+    // GROUP BY c.genero agrupa los resultados por género y COUNT cuenta cuántos productos hay.
+    // El resultado se convierte en un array asociativo: ['hombre' => 12, 'mujer' => 8, ...]
     $stmt_gen = $pdo_idx->query(
         'SELECT c.genero, COUNT(p.id) AS total
          FROM productos p
@@ -46,7 +71,9 @@ try {
         $conteos_genero[$row['genero']] = (int)$row['total'];
     }
 
-    // Destacados filtrados por género seleccionado
+    // ── Productos DESTACADOS del género seleccionado ───────────────
+    // "destacado = 1" es una bandera que el admin activa para poner productos en portada.
+    // Mostramos hasta 6 productos destacados del género activo.
     $stmt_dest = $pdo_idx->prepare(
         'SELECT p.id, p.nombre, p.marca, p.precio, p.precio_rebaja, p.badge
          FROM productos p
@@ -57,7 +84,8 @@ try {
     $stmt_dest->execute([$activeCat]);
     $destacados = $stmt_dest->fetchAll();
 
-    // Si no hay destacados en ese género, mostrar todos
+    // Si no hay destacados en ese género (ej: Infantil sin destacados),
+    // mostramos destacados de cualquier género para que la sección no quede vacía.
     if (empty($destacados)) {
         $destacados = $pdo_idx->query(
             'SELECT p.id, p.nombre, p.marca, p.precio, p.precio_rebaja, p.badge
@@ -66,9 +94,12 @@ try {
              ORDER BY p.created_at DESC LIMIT 6'
         )->fetchAll();
     }
+    // Obtenemos las imágenes de todos los productos destacados de una sola vez.
     $imgs_destacados = imagenesPorIds($pdo_idx, array_column($destacados, 'id'));
 
-    // Colección del género seleccionado
+    // ── Colección del género seleccionado (4 productos adicionales) ─
+    // Esta es la sección inferior "Lo mejor en Hombre/Mujer/Infantil".
+    // Pone los destacados primero, luego los más recientes.
     $stmt_col = $pdo_idx->prepare(
         'SELECT p.id, p.nombre, p.marca, p.precio, p.precio_rebaja, p.badge
          FROM productos p
@@ -81,12 +112,18 @@ try {
     $imgs_coleccion = imagenesPorIds($pdo_idx, array_column($coleccion_cat, 'id'));
 
 } catch (PDOException $e) {
+    // Si hay error de base de datos, dejamos todos los arrays vacíos.
+    // La página se mostrará sin productos pero no dará error de PHP.
     $destacados     = $imgs_destacados  = [];
     $coleccion_cat  = $imgs_coleccion   = [];
     $conteos_genero = [];
 }
 
+// Token de seguridad para los formularios de wishlist en esta página.
 $csrf         = generarCSRF();
+
+// Lista de IDs de favoritos del usuario para saber cuáles corazones mostrar rellenos.
+// Si no está logueado, la lista está vacía.
 $wishlist_ids = estaLogueado()
     ? wishlistUsuario(getPDO(), (int)$_SESSION['usuario_id'])
     : [];

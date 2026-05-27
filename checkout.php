@@ -1,8 +1,24 @@
 <?php
-// ── Checkout ─────────────────────────────────────────────────
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: checkout.php                                      ║
+// ║  PROPÓSITO: Formulario de datos de entrega y pago           ║
+// ║                                                              ║
+// ║  Esta es la página intermedia entre el carrito y el pedido   ║
+// ║  confirmado. El usuario llena aquí su información de envío   ║
+// ║  y elige el método de pago.                                  ║
+// ║                                                              ║
+// ║  Si el carrito está vacío, el usuario es redirigido a él.   ║
+// ║  Los datos del usuario (nombre, email) se pre-rellenan desde ║
+// ║  su cuenta para comodidad.                                   ║
+// ║                                                              ║
+// ║  Incluye la simulación visual de tarjeta de débito/crédito   ║
+// ║  (el JavaScript en la parte inferior anima los campos).      ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 require_once 'config/session.php';
 require_once 'config/database.php';
 
+// Solo usuarios logueados pueden finalizar una compra.
 if (!estaLogueado()) {
     flash('warning', 'Debes iniciar sesión para completar tu compra.');
     header('Location: auth.php?tab=login');
@@ -11,9 +27,9 @@ if (!estaLogueado()) {
 
 $pdo        = getPDO();
 $usuario_id = $_SESSION['usuario_id'];
-$usuario    = usuarioActual();
+$usuario    = usuarioActual();  // Datos del usuario (nombre, email) para pre-rellenar el formulario
 
-// Obtener ítems del carrito
+// Obtener ítems del carrito del usuario
 $stmt = $pdo->prepare(
     'SELECT ci.id, ci.cantidad, ci.precio_unit,
             p.id AS producto_id, p.nombre, p.marca

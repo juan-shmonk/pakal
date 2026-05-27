@@ -1,8 +1,29 @@
 <?php
-// ── Panel de Administración ──────────────────────────────────
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: admin.php                                         ║
+// ║  PROPÓSITO: Panel de administración completo                ║
+// ║                                                              ║
+// ║  Página de control exclusiva para administradores.          ║
+// ║  Se organiza en secciones accesibles por ?seccion=:          ║
+// ║                                                              ║
+// ║  - dashboard        → estadísticas generales y resumen      ║
+// ║  - productos        → lista completa de productos            ║
+// ║  - nuevo-producto   → formulario para crear un producto      ║
+// ║  - editar-producto  → formulario para editar un producto     ║
+// ║  - pedidos          → lista de todos los pedidos             ║
+// ║  - detalle-pedido   → detalles de un pedido específico       ║
+// ║  - clientes         → lista de usuarios registrados          ║
+// ║                                                              ║
+// ║  Toda esta información se carga al inicio para tenerla       ║
+// ║  disponible en cualquier sección sin consultas adicionales.  ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 require_once __DIR__ . '/config/session.php';
 require_once __DIR__ . '/config/database.php';
 
+// ── Verificación de acceso ────────────────────────────────────────
+// Este panel es solo para administradores. Doble verificación:
+// 1. ¿Está logueado?  2. ¿Tiene rol 'admin'?
 if (!estaLogueado()) {
     flash('warning', 'Debes iniciar sesión para acceder al panel.');
     header('Location: auth.php?tab=login');
@@ -15,11 +36,13 @@ if (!esAdmin()) {
 }
 
 $pdo     = getPDO();
-$usuario = usuarioActual();
-$flashes = obtenerFlash();
-$csrf    = generarCSRF();
+$usuario = usuarioActual();  // Datos del admin logueado (para mostrar su nombre en el panel)
+$flashes = obtenerFlash();   // Mensajes flash (confirmaciones de acciones previas)
+$csrf    = generarCSRF();    // Token para todos los formularios del panel
 
-// ── Datos del Dashboard ──────────────────────────────────────
+// ── Estadísticas del Dashboard ───────────────────────────────────
+// COALESCE(SUM(total), 0) → si no hay pedidos, devuelve 0 en lugar de NULL.
+// Usamos query() directo (sin parámetros) porque no hay variables de usuario.
 $stat_ventas    = (float) $pdo->query('SELECT COALESCE(SUM(total),0) FROM pedidos WHERE estado != "cancelado"')->fetchColumn();
 $stat_pedidos   = (int)   $pdo->query('SELECT COUNT(*) FROM pedidos')->fetchColumn();
 $stat_clientes  = (int)   $pdo->query('SELECT COUNT(*) FROM usuarios WHERE rol = "cliente"')->fetchColumn();

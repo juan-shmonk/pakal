@@ -1,8 +1,27 @@
 <?php
-// Script de un solo uso — eliminar después de ejecutar
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: fix_password.php                                  ║
+// ║  PROPÓSITO: Restablecer la contraseña del administrador      ║
+// ║                                                              ║
+// ║  Script de emergencia de un solo uso.                        ║
+// ║  Se ejecuta en el navegador: http://localhost/proyecto/fix_password.php
+// ║                                                              ║
+// ║  ¿Para qué sirve?                                            ║
+// ║  Si el admin olvida su contraseña y no puede entrar,         ║
+// ║  este script la resetea a "Pakal2026!" directamente en BD.   ║
+// ║                                                              ║
+// ║  ⚠️ IMPORTANTE: Eliminar este archivo después de usarlo.     ║
+// ║  Dejarlo en el servidor es un riesgo de seguridad: cualquier  ║
+// ║  persona que sepa la URL podría resetear la contraseña.       ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 require_once __DIR__ . '/config/database.php';
 
+// La nueva contraseña en texto plano.
 $nuevoPassword = 'Pakal2026!';
+
+// password_hash cifra la contraseña antes de guardarla en BD.
+// NUNCA guardamos contraseñas en texto plano. Solo el hash.
 $hash = password_hash($nuevoPassword, PASSWORD_BCRYPT, ['cost' => 12]);
 
 try {

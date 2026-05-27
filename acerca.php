@@ -1,4 +1,20 @@
 <?php
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: acerca.php                                        ║
+// ║  PROPÓSITO: Página "Quiénes somos" / Historia de la marca   ║
+// ║                                                              ║
+// ║  Página informativa estática sobre la marca PAKAL.           ║
+// ║  Contiene secciones navegables por ancla (#):               ║
+// ║  - #historia      → Historia e inspiración maya             ║
+// ║  - #sostenibilidad → Compromiso con el medio ambiente        ║
+// ║  - #artesanos     → Los artesanos que fabrican las prendas   ║
+// ║  - #prensa        → Apariciones en medios                    ║
+// ║  - #trabaja       → Trabaja con nosotros / vacantes          ║
+// ║                                                              ║
+// ║  No hace consultas a la base de datos porque es contenido    ║
+// ║  fijo (no cambia dinámicamente).                             ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 require_once 'config/session.php';
 require_once 'config/database.php';
 

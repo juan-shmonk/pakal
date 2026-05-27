@@ -1,10 +1,28 @@
 <?php
-// ── Detalle de Producto ──────────────────────────────────────
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: detalle.php                                       ║
+// ║  PROPÓSITO: Página de detalle de un producto específico      ║
+// ║                                                              ║
+// ║  Muestra toda la información de un producto:                 ║
+// ║  - Galería de imágenes con miniaturas clicables              ║
+// ║  - Nombre, marca, precio (con rebaja si aplica)              ║
+// ║  - Descripción, material, colección, stock disponible        ║
+// ║  - Botón "Agregar al carrito"                                ║
+// ║  - Botón de favoritos (♡)                                    ║
+// ║  - Productos relacionados de la misma categoría              ║
+// ║                                                              ║
+// ║  El ID del producto viene en la URL: ?id=5                   ║
+// ║  Si el ID no es válido o el producto no existe → catálogo    ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 require_once 'config/session.php';
 require_once 'config/database.php';
 
+// Leemos el ID del producto desde la URL (?id=5).
+// (int) convierte el valor a entero; si no es número, da 0.
 $producto_id = (int) ($_GET['id'] ?? 0);
 
+// Si no llegó un ID válido, redirigimos al catálogo.
 if ($producto_id <= 0) {
     header('Location: productos.php');
     exit;
@@ -12,7 +30,10 @@ if ($producto_id <= 0) {
 
 $pdo = getPDO();
 
-// Obtener producto con nombre de categoría
+// ── Obtener los datos completos del producto ──────────────────────
+// Usamos JOIN para obtener también el nombre de la categoría y género
+// (están en la tabla "categorias", relacionada por categoria_id).
+// No mostramos borradores (solo activos y agotados son visibles).
 $stmt = $pdo->prepare(
     'SELECT p.*, c.nombre AS categoria_nombre, c.slug AS categoria_slug, c.genero
      FROM productos p
@@ -21,15 +42,19 @@ $stmt = $pdo->prepare(
      LIMIT 1'
 );
 $stmt->execute([$producto_id]);
-$p = $stmt->fetch();
+$p = $stmt->fetch();  // $p contiene todos los datos del producto (o false si no existe)
 
+// Si el producto no existe o es borrador, mostramos error y vamos al catálogo.
 if (!$p) {
     flash('error', 'Producto no encontrado.');
     header('Location: productos.php');
     exit;
 }
 
-// Productos relacionados (misma categoría, diferente ID)
+// ── Obtener productos relacionados ────────────────────────────────
+// Buscamos otros productos de la MISMA categoría para mostrarlos
+// en la sección "Completa el look" al final de la página.
+// El ORDER BY pone los destacados primero y luego los más nuevos.
 $stmt = $pdo->prepare(
     'SELECT id, nombre, marca, precio, precio_rebaja, badge
      FROM productos
@@ -41,23 +66,33 @@ $stmt->execute([$p['categoria_id'], $producto_id]);
 $relacionados = $stmt->fetchAll();
 $imgs_relacionados = imagenesPorIds($pdo, array_column($relacionados, 'id'));
 
+// ── Calcular valores para mostrar ────────────────────────────────
+// Si hay precio de rebaja, se muestra ese; si no, el precio normal.
 $precio_display   = $p['precio_rebaja'] ?? $p['precio'];
+// true si tiene descuento activo (para mostrar el precio original tachado).
 $tiene_rebaja     = $p['precio_rebaja'] !== null;
+// Un producto está agotado si su estado es 'agotado' O si su stock llegó a 0.
 $agotado          = $p['estado'] === 'agotado' || $p['stock'] <= 0;
 
+// ── Obtener las imágenes del producto ────────────────────────────
+// Traemos hasta 4 imágenes en orden (la primera es la principal, las demás son miniaturas).
+// PDO::FETCH_COLUMN devuelve un array plano solo con las rutas: ['img1.jpg', 'img2.png', ...]
 $stmt_img = $pdo->prepare(
     'SELECT ruta FROM producto_imagenes WHERE producto_id = ? ORDER BY orden ASC LIMIT 4'
 );
 $stmt_img->execute([$producto_id]);
 $imagenes_detalle = $stmt_img->fetchAll(PDO::FETCH_COLUMN);
 
+// Generamos el token CSRF para los formularios de esta página (carrito y wishlist).
 $csrf = generarCSRF();
+
+// ── Verificar si este producto está en los favoritos del usuario ──
 if (estaLogueado()) {
     $sw = $pdo->prepare('SELECT 1 FROM wishlist WHERE usuario_id = ? AND producto_id = ?');
     $sw->execute([$_SESSION['usuario_id'], $producto_id]);
-    $en_wishlist = (bool) $sw->fetch();
+    $en_wishlist = (bool) $sw->fetch();  // true = sí está, false = no está
 } else {
-    $en_wishlist = false;
+    $en_wishlist = false;  // Visitantes no tienen favoritos
 }
 
 $pageTitle = htmlspecialchars($p['nombre']) . ' — PAKAL';

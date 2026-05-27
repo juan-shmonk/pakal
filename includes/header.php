@@ -1,29 +1,47 @@
 <?php
-/**
- * Componente reutilizable: Header del sitio
- *
- * Variables esperadas (opcionales):
- *   $pageTitle   string  Título de la página para <title>
- *   $activeNav   string  Enlace activo: 'inicio'|'novedades'|'ropa'|'zapatos'|'accesorios'|'rebajas'
- *   $activeCat   string  Catálogo activo: 'hombre'|'mujer'|'infantil'
- */
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: includes/header.php                               ║
+// ║  PROPÓSITO: Cabecera reutilizable del sitio                 ║
+// ║                                                              ║
+// ║  Este archivo se incluye al INICIO de cada página con:       ║
+// ║    require_once 'includes/header.php';                       ║
+// ║                                                              ║
+// ║  Genera el HTML de la parte superior de todas las páginas:   ║
+// ║  - La barra promocional de envío gratuito                    ║
+// ║  - El logotipo PAKAL con enlaces a catálogos por género       ║
+// ║  - Botones de cuenta, favoritos y carrito (con contadores)   ║
+// ║  - La barra de navegación principal (Novedades, Ropa, etc.)  ║
+// ║  - Los mensajes flash (de éxito, error, etc.)                ║
+// ║                                                              ║
+// ║  Variables que puede recibir de la página que lo incluye:    ║
+// ║   $pageTitle  — Título que aparece en la pestaña del navegador║
+// ║   $activeNav  — Qué enlace del menú aparece resaltado        ║
+// ║   $activeCat  — Qué catálogo (hombre/mujer/infantil) está activo║
+// ╚══════════════════════════════════════════════════════════════╝
 
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../config/database.php';
 
+// Si la página que incluyó este header no definió estas variables,
+// usamos los valores por defecto con el operador "??".
 $pageTitle = $pageTitle ?? 'PAKAL — Moda Premium';
 $activeNav = $activeNav ?? '';
 $activeCat = $activeCat ?? 'hombre';
 
-$usuario   = usuarioActual();
-$logueado  = estaLogueado();
+$usuario   = usuarioActual();  // Datos del usuario logueado (o null si no hay sesión)
+$logueado  = estaLogueado();   // true/false: ¿hay alguien logueado?
 
-// Contar ítems en el carrito y wishlist del usuario actual
+// ── Contar ítems en carrito y favoritos para mostrar en los íconos ─
+// Solo consultamos si hay usuario logueado (los anónimos no tienen carrito en BD).
 $cart_count    = 0;
 $wish_count    = 0;
 if ($logueado) {
     try {
         $pdo_hdr = getPDO();
+
+        // Contamos el TOTAL de unidades en el carrito (suma de cantidades).
+        // COALESCE(SUM(...), 0) devuelve 0 si el carrito está vacío (evita null).
+        // El JOIN une carrito_items con carritos para filtrar por usuario.
         $stmt = $pdo_hdr->prepare(
             'SELECT COALESCE(SUM(ci.cantidad), 0)
              FROM carrito_items ci
@@ -33,19 +51,26 @@ if ($logueado) {
         $stmt->execute([$_SESSION['usuario_id']]);
         $cart_count = (int) $stmt->fetchColumn();
 
+        // Contamos cuántos productos tiene en la lista de favoritos.
         $stmt_w = $pdo_hdr->prepare('SELECT COUNT(*) FROM wishlist WHERE usuario_id = ?');
         $stmt_w->execute([$_SESSION['usuario_id']]);
         $wish_count = (int) $stmt_w->fetchColumn();
     } catch (PDOException $e) {
+        // Si hay error de BD (ej: conexión caída), simplemente mostramos 0.
         $cart_count = 0;
         $wish_count = 0;
     }
 }
 
-// Flash messages
+// ── Obtener mensajes flash pendientes ─────────────────────────────
+// obtenerFlash() los recupera de la sesión Y los borra al mismo tiempo.
+// Así cada mensaje se muestra exactamente una vez.
 $flashes   = obtenerFlash();
 
-// Helper para clases activas
+// ── Funciones auxiliares para resaltar enlaces activos ────────────
+// navClass() devuelve 'class="active"' si el ítem coincide con el actual.
+// Se usa en el HTML así: <a href="..." <?= navClass('inicio', $activeNav) ?>>Inicio</a>
+// El CSS aplica estilo diferente a los elementos con clase "active".
 function navClass(string $item, string $current): string {
     return $item === $current ? ' class="active"' : '';
 }

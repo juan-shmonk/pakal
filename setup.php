@@ -1,4 +1,25 @@
 <?php
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: setup.php                                         ║
+// ║  PROPÓSITO: Instalación inicial del sistema                 ║
+// ║                                                              ║
+// ║  Script que se ejecuta UNA SOLA VEZ para configurar todo:   ║
+// ║  http://localhost/proyecto/setup.php                        ║
+// ║                                                              ║
+// ║  ¿Qué hace?                                                  ║
+// ║  1. Se conecta a MySQL                                       ║
+// ║  2. Borra la base de datos anterior (si existe) y la recrea  ║
+// ║  3. Crea todas las tablas necesarias:                        ║
+// ║     - usuarios, categorias, productos, producto_imagenes     ║
+// ║     - carritos, carrito_items, pedidos, pedido_items, wishlist║
+// ║  4. Inserta las categorías de ejemplo                        ║
+// ║  5. Crea el usuario administrador por defecto               ║
+// ║                                                              ║
+// ║  ⚠️ IMPORTANTE: Eliminar o proteger este archivo después de  ║
+// ║  ejecutarlo. Si alguien lo corre de nuevo, borrará todos     ║
+// ║  los datos de la tienda (pedidos, clientes, productos, etc.)║
+// ╚══════════════════════════════════════════════════════════════╝
+
 /**
  * ═══════════════════════════════════════════════════════════
  *  PAKAL — Script de Configuración Inicial

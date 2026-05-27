@@ -1,27 +1,51 @@
 <?php
-// ── Auth Page — Login y Registro ────────────────────────────
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: auth.php                                          ║
+// ║  PROPÓSITO: Página de login y registro de usuarios          ║
+// ║                                                              ║
+// ║  Una sola página con dos paneles (tabs):                     ║
+// ║  - "Iniciar sesión": formulario con email y contraseña       ║
+// ║  - "Crear cuenta": formulario con todos los datos del usuario ║
+// ║                                                              ║
+// ║  El tab activo se controla con ?tab=login o ?tab=registro    ║
+// ║  en la URL. JavaScript permite cambiar de tab sin recargar.  ║
+// ║                                                              ║
+// ║  Los formularios se envían a:                                ║
+// ║  - Login    → proceso/login.php                              ║
+// ║  - Registro → proceso/registro.php                           ║
+// ║                                                              ║
+// ║  Si hubo errores, los datos correctos se pre-rellenan        ║
+// ║  en el formulario para que el usuario no tenga que           ║
+// ║  escribirlos de nuevo.                                       ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 require_once __DIR__ . '/config/session.php';
 
-// Si ya está logueado, redirigir
+// Si el usuario ya tiene sesión activa, no tiene sentido estar en esta página.
+// Lo mandamos directamente al inicio.
 if (estaLogueado()) {
     header('Location: index.php');
     exit;
 }
 
-// Tab activo: login | registro
+// ── Determinar qué tab mostrar ────────────────────────────────────
+// Por defecto mostramos el login. El registro se abre con ?tab=registro
+// (también cuando proceso/registro.php detecta errores y redirige aquí).
 $tab = in_array($_GET['tab'] ?? '', ['login', 'registro']) ? $_GET['tab'] : 'login';
 
-// Recuperar prefill (errores previos)
+// ── Recuperar datos pre-rellenados de intentos fallidos ───────────
+// Si el login falló, recuperamos el email para mostrarlo en el campo.
 $emailPrefill = htmlspecialchars($_SESSION['auth_email_prefill'] ?? '');
-unset($_SESSION['auth_email_prefill']);
+unset($_SESSION['auth_email_prefill']);  // Borramos después de leer (es de un solo uso)
 
+// Si el registro falló, recuperamos nombre, apellido, email y teléfono válidos.
 $regPrefill = $_SESSION['reg_prefill'] ?? [];
-unset($_SESSION['reg_prefill']);
+unset($_SESSION['reg_prefill']);  // Borramos después de leer
 
-// Flash messages
+// Flash messages (mensajes de error/éxito del intento anterior).
 $flashes = obtenerFlash();
 
-// CSRF token
+// Token CSRF para los formularios de esta página.
 $csrf = generarCSRF();
 ?>
 <!DOCTYPE html>

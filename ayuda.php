@@ -1,4 +1,17 @@
 <?php
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: ayuda.php                                         ║
+// ║  PROPÓSITO: Centro de ayuda / preguntas frecuentes          ║
+// ║                                                              ║
+// ║  Página informativa estática con secciones navegables por ancla:
+// ║  - #tallas       → Guía de tallas y medidas                 ║
+// ║  - #envios       → Información sobre envíos y tiempos        ║
+// ║  - #devoluciones → Política de devoluciones y cambios        ║
+// ║  - #contacto     → Formas de contactar al soporte            ║
+// ║                                                              ║
+// ║  No consulta la base de datos porque es contenido fijo.      ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 require_once 'config/session.php';
 require_once 'config/database.php';
 

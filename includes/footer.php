@@ -1,8 +1,23 @@
 <?php
-/**
- * Componente reutilizable: Footer del sitio
- * Incluir al final de cada página PHP antes de </body>
- */
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: includes/footer.php                               ║
+// ║  PROPÓSITO: Pie de página reutilizable del sitio            ║
+// ║                                                              ║
+// ║  Este archivo se incluye al FINAL de cada página con:        ║
+// ║    require_once 'includes/footer.php';                       ║
+// ║                                                              ║
+// ║  Contiene:                                                   ║
+// ║  - Cierre del tag <main> que abrió header.php                ║
+// ║  - Pie de página con descripción de la marca                 ║
+// ║  - Columnas de enlaces: Comprar, Información, Ayuda          ║
+// ║  - Redes sociales (enlaces pendientes de conectar)           ║
+// ║  - Barra inferior con copyright y año actual                 ║
+// ║  - Carga del archivo JavaScript principal (main.js)          ║
+// ║                                                              ║
+// ║  NOTA: date('Y') genera el año actual automáticamente.       ║
+// ║  El copyright siempre muestra el año correcto sin necesidad  ║
+// ║  de actualizarlo manualmente cada año nuevo.                 ║
+// ╚══════════════════════════════════════════════════════════════╝
 ?>
 </main><!-- /.main -->
 

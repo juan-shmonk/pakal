@@ -1,8 +1,21 @@
 <?php
-// ── Mis Favoritos ────────────────────────────────────────────
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: wishlist.php                                      ║
+// ║  PROPÓSITO: Mostrar la lista de favoritos del usuario        ║
+// ║                                                              ║
+// ║  Muestra todos los productos que el usuario guardó como      ║
+// ║  favoritos (haciendo clic en el corazón ♡ en cualquier       ║
+// ║  parte del sitio).                                           ║
+// ║                                                              ║
+// ║  Solo accesible para usuarios logueados.                     ║
+// ║  Desde aquí se puede quitar cada producto de favoritos       ║
+// ║  o ir a ver su detalle para comprarlo.                       ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 require_once 'config/session.php';
 require_once 'config/database.php';
 
+// Página privada: solo para usuarios con cuenta.
 if (!estaLogueado()) {
     flash('info', 'Inicia sesión para ver tus favoritos.');
     header('Location: auth.php');
@@ -11,8 +24,13 @@ if (!estaLogueado()) {
 
 $pdo        = getPDO();
 $usuario_id = (int)$_SESSION['usuario_id'];
-$csrf       = generarCSRF();
+$csrf       = generarCSRF();  // Token para el formulario de quitar favoritos
 
+// ── Consultar los productos favoritos del usuario ─────────────────
+// JOIN une las tablas wishlist y productos:
+//   wishlist → guarda qué usuario guardó qué producto_id (y cuándo)
+//   productos → tiene los datos del producto (nombre, precio, etc.)
+// ORDER BY w.created_at DESC: los guardados más recientemente aparecen primero.
 $stmt = $pdo->prepare(
     'SELECT p.id, p.nombre, p.marca, p.precio, p.precio_rebaja, p.badge, p.stock, p.estado
      FROM wishlist w
@@ -21,7 +39,7 @@ $stmt = $pdo->prepare(
      ORDER BY w.created_at DESC'
 );
 $stmt->execute([$usuario_id]);
-$favoritos = $stmt->fetchAll();
+$favoritos = $stmt->fetchAll();  // Array con todos los productos favoritos
 
 $imgs_favoritos = imagenesPorIds($pdo, array_column($favoritos, 'id'));
 $wishlist_ids   = array_column($favoritos, 'id');

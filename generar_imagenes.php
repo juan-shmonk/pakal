@@ -1,6 +1,22 @@
 <?php
-// Script de utilidad — corre una sola vez para generar las imágenes SVG de productos
-// Accede a: http://localhost/proyecto/generar_imagenes.php
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ARCHIVO: generar_imagenes.php                              ║
+// ║  PROPÓSITO: Generar imágenes SVG para todos los productos    ║
+// ║                                                              ║
+// ║  Script de utilidad que se ejecuta UNA VEZ en el navegador:  ║
+// ║  http://localhost/proyecto/generar_imagenes.php              ║
+// ║                                                              ║
+// ║  ¿Para qué sirve?                                            ║
+// ║  Crea imágenes SVG de placeholder para todos los productos   ║
+// ║  que no tienen foto real. Cada imagen muestra el nombre del  ║
+// ║  producto sobre un fondo con degradado de color único.       ║
+// ║                                                              ║
+// ║  Las imágenes se guardan en assets/img/productos/ con el     ║
+// ║  slug del producto como nombre (ej: camisa-lino.svg).        ║
+// ║                                                              ║
+// ║  Los colores se asignan cíclicamente según el ID del producto:
+// ║  producto 1 → paleta 1, producto 9 → paleta 1 (vuelve a empezar)
+// ╚══════════════════════════════════════════════════════════════╝
 
 require_once __DIR__ . '/config/database.php';
 
